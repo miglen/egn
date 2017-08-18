@@ -1,0 +1,13 @@
+language: python
+python:
+- '2.7'
+- '3.3'
+- pypy
+deploy:
+  provider: pypi
+  user: miglen
+  password:
+    secure: IsFG7SlcmT5ICYDz4k4bwT6W/dJ0hNVQogLfBmaTB3OVrmDV9yDVB5KnjuQ0QwjwJkqQaCD3dLQwKbji6TH3PgBjqnS6FDoSbEyYcipS23jvxZsvnEG+4wXzillxABKj9OkBvL/eIeYHxW60My3F3T6nRCtxpkbc3ZxY79YOOpzovEeTyg8yj4OlIAv7Y7VzzAaMCxjQ5Z/qZoi8y2TWisCd5Am1lxgbkQvQQYELHBCp1ePLheqcAwZ6Beu6F4kFDKvr5Tk/IStLg9vvMWKmWbYtgEQbjF7iVX36pCZxBhxRz8SrnXGXQ7oP1utSC8+/o2AgEPN7TXxpo3XgDfTIrlPtyf8qSYxPWtH6dE5TQxB83fDn0ww0Czn28al+QE94BYwHO3qUTQxiekLVo6R4XghqQ1jy3peHd0CjP6ObdLiDSOT4IOU0TWHXKC7n8FZKSMjrcceT6cQqrL9vgfhCU2wz7fQSEsp+IgsOuAbrnQZeWoxf/oUhvsZa5jsL/3MMgKtry0vFzOxD5rXEMcPJ4k1VoB/N4Q34wfK7bGcUQeZsXQ7PpUOXGU5sm5usHroalQAwsgnbFAIH0jY+D0ZRe05tFdN3xxS33uMnKlUnnEvbVaLxco+7+7NsssSze/SzOmXGylMGKYTLzkwvfVBnzSpvDOU9W5txd6tibgJkKPo=
+  on:
+    tags: true
+    branch: master
