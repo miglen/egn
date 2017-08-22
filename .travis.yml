@@ -1,8 +1,7 @@
 language: python
 python:
-- '2.7'
-- '3.3'
-- pypy
+- "2.7"
+- "3.6"
 deploy:
   provider: pypi
   user: miglen
@@ -11,3 +10,10 @@ deploy:
   on:
     tags: true
     branch: master
+notifications:
+  email: false
+install:
+  - pip install pep8 .
+script: 
+  - pep8
+  - pytest

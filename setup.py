@@ -1,26 +1,43 @@
-import os
+# -*- coding: utf-8 -*-
+
 from setuptools import find_packages, setup
+from codecs import open
+from os import path
 
-with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
-    README = readme.read()
+here = path.abspath(path.dirname(__file__))
 
-# allow setup.py to be run from any path
-os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
+# Get the long description from the README file
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='egn',
-    version='0.1',
-    packages=find_packages(),
+    version='0.1.1',
+    packages=find_packages(exclude=['tests']),
     include_package_data=True,
     license='GPL-3.0',  # example license
-    description='Validator, generator and parser for Bulgarian unique citizenship numbers (EGN/ЕГН).',
-    long_description=README,
+    description=('Validator, generator and parser '
+                 'for Bulgarian unique citizenship numbers (EGN/ЕГН).'),
+    long_description=long_description,
     url='http://github.com/miglen/egn/',
     author='Miglen Evlogiev',
     author_email='github@miglen.com',
     classifiers=[
-        'License :: OSI Approved :: GPL-3.0', 
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        ('License :: OSI Approved :: GNU '
+         'General Public License v3 or later (GPLv3+)'),
         'Operating System :: OS Independent',
-        'Programming Language :: Python'
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
+    entry_points='''
+        [console_scripts]
+        egn=egn:main
+    ''',
 )
