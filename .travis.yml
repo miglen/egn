@@ -13,7 +13,10 @@ deploy:
 notifications:
   email: false
 install:
-  - pip install pep8 .
+  - pip install -r test/requirements.txt
+  - pip install .
 script: 
   - pep8
-  - pytest
+  - pytest --cov=./egn/
+after_success:
+  - codecov
