@@ -7,7 +7,7 @@ numbers in Bulgaria EGN (ЕГН).
 Български: Скрипт за проверка и генериране на ЕГН / Програма за проверка и генериране на единни граждански номера.
 
 .. image:: https://badge.fury.io/py/egn.svg
-   :target: pypi.python.org/pypi/egn
+   :target: https://pypi.python.org/pypi/egn
    :alt: PyPI package
 .. image:: https://img.shields.io/travis/miglen/egn.svg
   :target: https://travis-ci.org/miglen/egn
