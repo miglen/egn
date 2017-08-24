@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import sys
 import random
 
@@ -76,6 +77,9 @@ def validate(egn):
         http://www.grao.bg/esgraon.html#section2
         https://gist.github.com/vstoykov/1137057
     '''
+    if isinstance(egn, int):
+        egn = str('{0:0=10d}'.format(egn))
+
     def check_valid_code(egn):
         egn_weights = (2, 4, 8, 5, 10, 9, 7, 3, 6)
         try:
@@ -85,25 +89,22 @@ def validate(egn):
         except ValueError:
             return False
 
-    if isinstance(egn, int):
-        egn = str('{0:0=10d}'.format(egn))
+    def check_greg_adopt(egn_date):
+        # Gregorian calendar adoption: 31/03/1916 > +13 days > 14/04/1916
+        if (
+            egn_date['year'] == 1916 and
+            egn_date['month'] == 4 and
+            egn_date['day'] <= 13
+              ):
+            return False
+        return True
 
     egn_date = get_date(egn)
-    if not isinstance(egn_date, dict):
-        return False
 
-    # There's no numbers outside of that date range.
-    if egn_date['year'] < 1800 or egn_date['year'] > 2099:
-        return False
-    # Gregorian calendar adoption: 31/03/1916 > +13 days > 14/04/1916
-    elif (
-        egn_date['year'] == 1916 and
-        egn_date['month'] == 4 and
-        egn_date['day'] <= 13
-          ):
-        return False
-
-    return len(egn) == 10 and check_valid_code(egn)
+    return (len(egn) == 10 and
+            check_valid_code(egn) and
+            isinstance(egn_date, dict) and
+            check_greg_adopt(egn_date))
 
 
 def parse(egn):
@@ -134,14 +135,63 @@ def parse(egn):
     return egn_hash
 
 
-def main():
-    """Entry point for the application script"""
-    if len(sys.argv) <= 1:
-        print("This is a help message")
-        exit()
-    if validate(sys.argv[1]):
-        print("{} is valid!".format(sys.argv[1]))
-        exit()
+def parse_args(args):
+    '''
+        Method to parse the arguments to the program.
+    '''
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-v", "--validate", help="Validate EGN",
+                        type=int)
+    parser.add_argument("-p", "--parse", help="Parse EGN",
+                        type=int)
+    # Generate
+    parser.add_argument("-g", "--generate", help="Generate EGN",
+                        action="store_true")
+    parser.add_argument("-s", "--sex", help="Sex/gender",
+                        type=str, choices=['male', 'female', 'm', 'f'],
+                        default=random.choice(['m', 'f']))
+    parser.add_argument("-y", "--year", help="Year (between 1800-2099)",
+                        type=int, default=random.randint(1800, 2099))
+    parser.add_argument("-m", "--month", help="Month (between 1-12)",
+                        type=int, default=random.randint(1, 12))
+    parser.add_argument("-d", "--day", help="Day (between 1-31)",
+                        type=int, default=random.randint(1, 31))
+    parser.add_argument("-r", "--region", help="Region (pernik/sofia etc.)",
+                        type=str, default=random.choice(['Pernik', 'Sofia']))
+    return vars(parser.parse_args(args))
+
+
+def calc_args(parser):
+    '''
+        Method to parse the argparse values and return output
+    '''
+
+    if 'parse' in parser and parser['parse']:
+        validate_egn = str(parser['parse'])
+        if not validate(validate_egn):
+            print("{} is invalid!".format(validate_egn))
+            exit(1)
+        print(parse(validate_egn))
+    elif 'generate' in parser and parser['generate']:
+        print(generate())
+    elif 'validate' in parser and parser['validate']:
+        validate_egn = str(parser['validate'])
+        if validate(validate_egn):
+            print("{} is valid!".format(validate_egn))
+        else:
+            print("{} is invalid!".format(validate_egn))
+            exit(1)
     else:
-        print("{} is invalid!".format(sys.argv[1]))
-        exit(1)
+        parse_args({'-h'})
+
+
+def main():
+    '''
+        Entry point for the application script
+    '''
+    if len(sys.argv) > 1:
+        parser = parse_args(sys.argv[1:])
+        calc_args(parser)
+    else:
+        parse_args({'-h'})
