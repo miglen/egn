@@ -49,7 +49,7 @@ Python package
   >>> ....
 
   # Generating with options
-  egn_options = {'year': 1999, 'month': 3, 'day': 3, 'region': 'Sofia', 'sex': 'm'}
+  egn_options = {'year': 1999, 'month': 3, 'day': 3, 'region': 'Sofia', 'gender': 'm'}
   egn.generate(egn_options)
   >>> ....
 
@@ -70,7 +70,7 @@ Here are the most common commands:
 
   # Parse
   $ egn -p 1234567890
-  
+
   # Generate
   $ egn -g # random without options
   $ egn -g -y 1999 -m 3 -d 3 -r Sofia -s male # with options

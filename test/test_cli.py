@@ -17,15 +17,16 @@ def test_cli_parse(capsys):
     egn_options = {'parse': 9941011142}
     egn.calc_args(egn_options)
     out, err = capsys.readouterr()
-    assert ('Varna' in out and '2099' in out and 'male' in out)
+    assert ('Varna' in out and '2099' in out and 'Male' in out)
 
 
 def test_cli_generate(capsys):
     ''' Test generate via cli '''
-    egn_options = {'generate': True}
+    egn_options = {'generate': True, 'limit': 1, 'region': 'Sofia', 'gender': 'm',
+                   'from': '2020-01-01', 'to': '2020-12-12'}
     egn.calc_args(egn_options)
     out, err = capsys.readouterr()
-    assert out == "9941011142\n"
+    assert egn.validate(out.strip()) is True
 
 
 def test_cli_validation(capsys):

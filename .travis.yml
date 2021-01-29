@@ -1,7 +1,6 @@
 language: python
 python:
-- "2.7"
-- "3.6"
+- "3.8"
 deploy:
   provider: pypi
   user: miglen
@@ -15,7 +14,7 @@ notifications:
 install:
   - pip install -r test/requirements.txt
   - pip install .
-script: 
+script:
   - pep8
   - pytest --cov=./egn/
 after_success:

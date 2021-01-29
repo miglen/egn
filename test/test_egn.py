@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 import egn
-import sys
-import datetime
-import pytest
-
-
-def test_generation():
-    ''' Test generation produces valid egn '''
-    assert egn.validate(egn.generate())
 
 
 def test_generation_options():
     ''' Test generation produce valid egn with options '''
-    assert egn.validate(egn.generate(region=1, sex=1, day=1, month=1,
-                        year=2000, limit=100))
+    for i in egn.generate(region='Pernik', gender='m', limit=100):
+        assert egn.validate(i)
+
+
+def test_generation_random():
+    ''' Test generation produce valid egn with options '''
+    random = egn.generate_random(limit=10)
+    assert len(random) == 10
+    for i in random:
+        assert egn.validate(i)
 
 
 def test_valid():
