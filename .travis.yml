@@ -15,7 +15,7 @@ install:
   - pip install -r test/requirements.txt
   - pip install .
 script:
-  - pep8
+  - flake8
   - pytest --cov=./egn/
 after_success:
   - codecov
