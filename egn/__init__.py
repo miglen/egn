@@ -5,6 +5,18 @@ import random
 from datetime import timedelta, datetime
 import json
 
+
+class InvalidEGNError(ValueError):
+    """Raised when an EGN fails validation."""
+
+
+def _normalize(egn):
+    """Coerce an EGN to a 10-character string, zero-padding ints."""
+    if isinstance(egn, int):
+        return '{0:010d}'.format(egn)
+    return str(egn)
+
+
 egn_regions = {
     # https://www.iso.org/obp/ui/#iso:code:3166:BG
     43: {'bg': 'Благоевград', 'en': 'Blagoevgrad', 'start': 0, 'iso': 'BG-01'},  # 000 - 043
@@ -54,97 +66,110 @@ def generate_random(gender=None,
         year = random.randint(1800, datetime.today().year - 1)
         month = random.randint(1, 12)
         day = random.randint(1, 28)
-        date_from = f"{year}-{month}-{day}"
-        date_to = datetime.today().strftime('%Y-%m-%d')
-        rand_egn = generate(date_from=date_from, date_to=date_to, region=rand_region, gender=gender, limit=1)
-        if len(rand_egn) == 1:
+        rand_date = f"{year:04d}-{month:02d}-{day:02d}"
+        rand_egn = generate(date_from=rand_date, date_to=rand_date,
+                            region=rand_region, gender=gender, limit=1)
+        if rand_egn:
             egns.append(rand_egn[0])
     return egns
 
 
+def _get_region_range(region):
+    """
+    Resolve a region name (Latin, Cyrillic, or ISO 3166-2) to the
+    inclusive (start, end) region-code range for the EGN positions 7-9.
+    Returns (None, None) if the region is not found.
+    """
+    needle = region.lower()
+    for end, info in egn_regions.items():
+        if needle in (info['en'].lower(), info['bg'].lower(), info['iso'].lower()):
+            return info['start'], end
+    return None, None
+
+
+def _get_dates_range(date_from, date_to):
+    """
+    Return every date in [date_from, date_to] encoded as the 6-digit
+    YYMMDD prefix used in an EGN (with +20/+40 century offsets and the
+    Gregorian adoption gap skipped). Inputs are ISO 8601 strings.
+    """
+    dates = []
+    sdate = datetime.strptime(date_from, '%Y-%m-%d')
+    edate = datetime.strptime(date_to, '%Y-%m-%d')
+    if sdate > edate:
+        return dates
+
+    for i in range(((edate - sdate).days) + 1):
+        d = sdate + timedelta(days=i)
+        year, month, day = d.year, d.month, d.day
+
+        # Gregorian calendar adoption: 31/03/1916 -> +13 days -> 14/04/1916
+        if year == 1916 and month == 4 and day <= 13:
+            continue
+
+        if year >= 2000:
+            enc_year, enc_month = year - 2000, month + 40
+        elif year < 1900:
+            enc_year, enc_month = year - 1800, month + 20
+        else:
+            enc_year, enc_month = year - 1900, month
+
+        dates.append(f"{enc_year:02d}{enc_month:02d}{day:02d}")
+    return dates
+
+
 def generate(date_from="1800-01-01",
-             date_to=datetime.today().strftime('%Y-%m-%d'),
+             date_to=None,
              gender=None,
              region=None,
              limit=10):
     """
-    Generate egn within boundaries.
+    Generate valid EGNs matching the given constraints.
+
+    All arguments are optional:
+      date_from / date_to : ISO dates (YYYY-MM-DD). Default range is
+                            1800-01-01 through today.
+      gender              : 'm' / 'male' or 'f' / 'female'. None = either.
+      region              : Latin, Cyrillic, or ISO 3166-2 name. None = all.
+      limit               : Max number of EGNs to return. Use None (or 0)
+                            to enumerate every valid combination.
     """
-    def get_region_range(region="Other"):
-        """
-        Get region code.
-        Region could be the latin, cyrrilic or ISO 3166 anotation of the region.
-        """
-        start = 0
-        end = 0
-        for i in egn_regions:
-            if region.lower() in [egn_regions[i]['en'].lower(),
-                                  egn_regions[i]['bg'].lower(),
-                                  egn_regions[i]['iso'].lower()]:
-                start = egn_regions[i]['start']
-                end = i
-        return start, end
+    if date_to is None:
+        date_to = datetime.today().strftime('%Y-%m-%d')
 
-    def get_dates_range(date_from, date_to, limit=None):
-        """
-            Generate all dates between date range in ENG suitable format.
-            Params in ISO 8601 format.
-        """
-        dates = []
-        try:
-            sdate = datetime.strptime(date_from, '%Y-%m-%d')
-            edate = datetime.strptime(date_to, '%Y-%m-%d')
-            delta = edate - sdate
-
-            for i in range(delta.days + 1):
-                if limit is not None and i > limit:
-                    return dates
-                dday = str(sdate + timedelta(days=i))
-                year, month, day = int(dday[0:4]), int(dday[6:7]), int(dday[8:10])
-                if year >= 2000:
-                    month += 40
-                    year -= 2000
-                elif year < 1900:
-                    month += 20
-                    year -= 1800
-                else:
-                    # Gregorian calendar adoption: 31/03/1916 > +13 days > 14/04/1916
-                    if year == 1916 and month == 4 and day <= 13:
-                        continue
-                    year -= 1900
-                dates.append(f"{year:02d}{month:02d}{day:02d}")
-            return dates
-        except Exception as e:
-            print(e)
-            return None
-
-    egns = []
-    if not region:
-        regions = range(0, 999, 1)
+    # Region codes (inclusive)
+    if region is None:
+        region_codes = range(0, 1000)
     else:
-        region_start, region_end = get_region_range(region)
-        regions = range(region_start, region_end, 1)
+        region_start, region_end = _get_region_range(region)
+        if region_start is None:
+            return []
+        region_codes = range(region_start, region_end + 1)
 
+    # Gender is encoded in the last digit of the region code:
+    # even -> male, odd -> female.
     if gender is not None:
-        if gender[0].lower() == 'm':  # Male
-            regions = [x for x in regions if x % 2 == 0]
-        else:  # Female
-            regions = [x for x in regions if x % 2]
+        g = gender[0].lower()
+        if g == 'm':
+            region_codes = [x for x in region_codes if x % 2 == 0]
+        elif g == 'f':
+            region_codes = [x for x in region_codes if x % 2 == 1]
 
-    regions = [f"{x:02d}" for x in regions]
-    dates = get_dates_range(date_from, date_to, limit=limit)
-    counter = 1
+    unlimited = limit is None or limit <= 0
+    dates = _get_dates_range(date_from, date_to)
+    egns = []
 
-    # Generate the list of egns
     for dt in dates:
-        for region in regions:
-            for check_num in range(0, 9, 1):
-                egene = f"{dt}{region}{check_num}"
-                if validate(egene):
-                    counter += 1
-                    egns.append(egene)
-                    if counter > limit:
+        for rc in region_codes:
+            # For a given (date, region) exactly one check digit yields
+            # a valid EGN, so we break out as soon as we find it.
+            for check_num in range(10):
+                candidate = f"{dt}{rc:03d}{check_num}"
+                if validate(candidate):
+                    egns.append(candidate)
+                    if not unlimited and len(egns) >= limit:
                         return egns
+                    break
     return egns
 
 
@@ -153,7 +178,6 @@ def get_date(egn):
         Get the date information from the EGN
         Return hash with year, month, day and datetime.
     '''
-    from datetime import datetime
     try:
         year, month, day = int(egn[0:2]), int(egn[2:4]), int(egn[4:6])
     except Exception:
@@ -182,8 +206,7 @@ def validate(egn):
         http://www.grao.bg/esgraon.html#section2
         https://gist.github.com/vstoykov/1137057
     '''
-    if isinstance(egn, int):
-        egn = str('{0:0=10d}'.format(egn))
+    egn = _normalize(egn)
 
     def check_valid_code(egn):
         egn_weights = (2, 4, 8, 5, 10, 9, 7, 3, 6)
@@ -214,21 +237,22 @@ def validate(egn):
 
 def parse(egn):
     '''
-        Parse the EGN information and return hash with the values
+        Parse the EGN information and return hash with the values.
+        Raises InvalidEGNError if the EGN is not valid.
     '''
-    egn = str(egn)
+    egn = _normalize(egn)
     if not validate(egn):
-        raise Exception('Invalid EGN')
+        raise InvalidEGNError('Invalid EGN: {0!r}'.format(egn))
     egn_hash = {}
 
     # Parse the date
     egn_hash.update(get_date(egn))
 
-    # Parse the region
+    # Parse the region. Dict keys are the inclusive upper bound of each
+    # range, so >= is required to cover the last code in a region.
     region_num = int(egn[6:9])
-    sorted_regions = sorted(egn_regions.items())
-    for (key, value) in sorted_regions:
-        if key > region_num:
+    for key, value in sorted(egn_regions.items()):
+        if key >= region_num:
             egn_hash['region_bg'] = value['bg']
             egn_hash['region_en'] = value['en']
             egn_hash['region_iso'] = value['iso']
@@ -253,7 +277,9 @@ def parse_args(args):
     parser.add_argument("-v", "--validate", help="Validate EGN", type=str)
     parser.add_argument("-p", "--parse", help="Parse EGN", type=str)
     # Generation
-    parser.add_argument("-l", "--limit", help="Limit of generated results (default: 1)", type=int, default=1)
+    parser.add_argument("-l", "--limit",
+                        help="Limit of generated results. Omit to generate all combinations.",
+                        type=int, default=None)
     parser.add_argument("-r", "--random", help="Generate random EGN (default limit: 1)", action="store_true")
     parser.add_argument("-g", "--generate", help="Generate EGN", action="store_true")
     parser.add_argument("--gender", help="Gender - Male or Female", type=str, choices=['m', 'f'])
@@ -273,12 +299,16 @@ def calc_args(parser):
         validate_egn = str(parser['parse'])
         if not validate(validate_egn):
             print("{} is invalid!".format(validate_egn))
-            exit(1)
+            sys.exit(1)
         validate_egn = parse(validate_egn)
         validate_egn.pop('datetime')
         print(json.dumps(validate_egn))
     elif 'random' in parser and parser['random']:
-        print("\n".join(generate_random(limit=parser['limit'], region=parser['region'], gender=parser['gender'])))
+        # --random doesn't enumerate, so a missing limit falls back to 10.
+        random_limit = parser['limit'] if parser.get('limit') else 10
+        print("\n".join(generate_random(limit=random_limit,
+                                        region=parser['region'],
+                                        gender=parser['gender'])))
     elif 'generate' in parser and parser['generate']:
         print("\n".join(generate(limit=parser['limit'], region=parser['region'], gender=parser['gender'],
                                  date_from=parser['from'],  date_to=parser['to'])))
@@ -288,9 +318,9 @@ def calc_args(parser):
             print("{} is valid!".format(validate_egn))
         else:
             print("{} is invalid!".format(validate_egn))
-            exit(1)
+            sys.exit(1)
     else:
-        parse_args({'-h'})
+        parse_args(['-h'])
 
 
 def main():
@@ -301,4 +331,4 @@ def main():
         parser = parse_args(sys.argv[1:])
         calc_args(parser)
     else:
-        parse_args({'-h'})
+        parse_args(['-h'])

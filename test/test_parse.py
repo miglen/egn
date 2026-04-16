@@ -6,9 +6,21 @@ import pytest
 
 def test_parse_invalid():
     ''' Test invalid parsing '''
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(egn.InvalidEGNError) as exc_info:
         egn.parse('0001011142')
-        assert exc_info == 'Invalid EGN'
+    assert 'Invalid EGN' in str(exc_info.value)
+    # InvalidEGNError must be a ValueError so existing callers keep working.
+    assert isinstance(exc_info.value, ValueError)
+
+
+def test_parse_accepts_int():
+    ''' parse() must zero-pad ints just like validate() does '''
+    result = egn.parse(21010899)
+    assert result['egn'] == '0021010899'
+    # Month 21 -> +20 offset -> born in 1800-01-01
+    assert (result['year'], result['month'], result['day']) == (1800, 1, 1)
+    # Sanity: int form yields the same result as the zero-padded string form
+    assert result == egn.parse('0021010899')
 
 
 def test_parse_egn():
