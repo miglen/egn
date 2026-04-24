@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ЕГН — валидатор, генератор и обяснение</title>
+    <meta name="description" content="Валидация, генериране и обяснение на български Единен граждански номер (ЕГН). Validate, generate and explain Bulgarian EGN.">
+    <meta name="keywords" content="ЕГН, EGN, валидация, генератор, България, единен граждански номер, bulgarian civil number">
+    <meta name="robots" content="index,follow">
+    <meta name="content-language" content="bg, en">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='5.33' fill='%23fff'/%3E%3Crect y='5.33' width='16' height='5.33' fill='%2300966E'/%3E%3Crect y='10.66' width='16' height='5.34' fill='%23D62612'/%3E%3C/svg%3E">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-green: #00966E; --bg-green-dark: #007a59;
+            --bg-red: #D62612; --bg-red-dark: #b51f0e;
+            --bg-warm: #faf8f5; --bg-card: #ffffff;
+            --text-heading: #2c3e50; --text-body: #495057;
+            --border-light: #e9ecef;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,.1);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,.12);
+            --radius: .75rem;
+            --purple: #7952b3; --purple-dark: #5e3d8f;
+            --digit-year: #5b9bd5;
+            --digit-month: #e0a846;
+            --digit-day: #8ab84e;
+            --digit-region: #7952b3;
+            --digit-check: #D62612;
+        }
+        body { background: var(--bg-warm); color: var(--text-body); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .navbar-brand-text { font-weight: 700; letter-spacing: .5px; }
+        .navbar { box-shadow: var(--shadow-sm); }
+        .hero { background: linear-gradient(135deg, var(--bg-green) 0%, var(--bg-green-dark) 100%); color: #fff; border-radius: 0 0 2rem 2rem; padding: 2.5rem 1rem 2rem; margin-bottom: 2rem; text-align: center; }
+        .hero h1 { font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.4rem); margin-bottom: .75rem; }
+        .hero p { opacity: .95; max-width: 720px; margin: 0 auto; font-size: clamp(.9rem, 2vw, 1.05rem); line-height: 1.6; }
+        .hero .badge-count { display: inline-block; background: rgba(255,255,255,.2); padding: .35rem .9rem; border-radius: 2rem; font-size: .85rem; font-weight: 600; margin-top: .75rem; backdrop-filter: blur(4px); }
+
+        .card { border: none; border-radius: var(--radius); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease; }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-header { font-weight: 600; font-size: .95rem; border-bottom: 2px solid var(--border-light); background: var(--bg-card); border-radius: var(--radius) var(--radius) 0 0 !important; }
+        .card-header .bi { margin-right: .4rem; }
+
+        /* Validator — green accent */
+        .validator-card .card-header { color: var(--bg-green); }
+        /* Provери button reflects state: neutral (grey), valid (green), invalid (red). */
+        .btn-validate { background: #6c757d; border-color: #6c757d; color: #fff; transition: background-color .2s ease, border-color .2s ease; }
+        .btn-validate:hover, .btn-validate:focus { background: #5a6268; border-color: #5a6268; color: #fff; }
+        .btn-validate.is-valid { background: var(--bg-green); border-color: var(--bg-green); }
+        .btn-validate.is-valid:hover, .btn-validate.is-valid:focus { background: var(--bg-green-dark); border-color: var(--bg-green-dark); }
+        .btn-validate.is-invalid { background: var(--bg-red); border-color: var(--bg-red); }
+        .btn-validate.is-invalid:hover, .btn-validate.is-invalid:focus { background: var(--bg-red-dark); border-color: var(--bg-red-dark); }
+
+        /* Generator — purple accent */
+        .generator-card .card-header { color: #fff; background: var(--purple); border-bottom: none; }
+        .btn-generate { background: var(--purple); border-color: var(--purple); color: #fff; }
+        .btn-generate:hover, .btn-generate:focus { background: var(--purple-dark); border-color: var(--purple-dark); color: #fff; }
+        .btn-copy { border-color: var(--purple); color: var(--purple); }
+        .btn-copy:hover, .btn-copy:focus { background: var(--purple); color: #fff; }
+
+        /* Explanation — red accent */
+        .explain-card .card-header { color: var(--bg-red); }
+
+        /* Gender pills, verbatim from names.miglen.com */
+        .gender-pills { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .gender-pills .btn-check + .btn { border-radius: 2rem; padding: .3rem 1rem; font-size: .85rem; font-weight: 500; border: 1px solid var(--border-light); color: var(--text-body); background: #fff; transition: all .15s ease; }
+        .gender-pills .btn-check:checked + .btn-male { background: #e8f4fd; border-color: #5b9bd5; color: #2c6faa; }
+        .gender-pills .btn-check:checked + .btn-female { background: #fce8f0; border-color: #d5668a; color: #a63d63; }
+        .gender-pills .btn-check:checked + .btn-any { background: #f0eaff; border-color: var(--purple); color: var(--purple-dark); }
+
+        /* EGN visual breakdown */
+        .egn-breakdown { display: flex; gap: .35rem; justify-content: center; flex-wrap: wrap; font-family: "SF Mono", ui-monospace, "Menlo", "Monaco", monospace; font-size: clamp(1.3rem, 4vw, 2rem); font-weight: 700; margin: .75rem 0 .5rem; }
+        .egn-digit { padding: .45rem .75rem; border-radius: .5rem; color: #fff; cursor: help; transition: transform .15s ease, opacity .15s ease; position: relative; min-width: 1.8em; text-align: center; letter-spacing: .05em; }
+        .egn-digit:hover { transform: translateY(-2px); }
+        .egn-digit.empty { opacity: .4; font-weight: 500; }
+        .egn-digit.year   { background: var(--digit-year); }
+        .egn-digit.month  { background: var(--digit-month); }
+        .egn-digit.day    { background: var(--digit-day); }
+        .egn-digit.region { background: var(--digit-region); }
+        .egn-digit.check  { background: var(--digit-check); }
+        .egn-legend { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; font-size: .78rem; color: var(--text-body); margin-bottom: .5rem; }
+        .egn-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+        .egn-legend i.dot { width: .8rem; height: .8rem; border-radius: .2rem; display: inline-block; }
+
+        /* Parse result panel */
+        .parse-panel { background: #f0faf6; border: 1px solid #cfe8dc; border-radius: var(--radius); padding: .65rem 1rem; margin-top: .75rem; }
+        .parse-panel.invalid { background: #fdecea; border-color: #f5c6c2; }
+        .parsed-line { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-size: .92rem; color: var(--text-heading); line-height: 1.6; }
+        .parsed-line .parsed-sep { color: #cfe0d4; user-select: none; }
+        .parsed-line code { background: #ffffffa0; padding: 0 .25rem; border-radius: .2rem; font-size: .85rem; color: var(--text-heading); }
+        .parse-panel.invalid .parsed-line .parsed-sep { color: #f1c3bd; }
+
+        /* Generator results */
+        .results-list { max-height: 420px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: var(--radius); background: #fff; font-family: "SF Mono", ui-monospace, "Menlo", "Monaco", monospace; font-size: .92rem; }
+        .results-list::-webkit-scrollbar { width: 6px; }
+        .results-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        .results-list .result-row { padding: .4rem .9rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+        .results-list .result-row:last-child { border-bottom: none; }
+        .results-list .result-row:hover { background: #faf7fd; }
+        .results-list .result-row .egn-code { font-weight: 600; color: var(--text-heading); }
+        .results-list .result-row .meta { font-size: .78rem; color: #888; font-family: inherit; }
+
+        /* Region table */
+        .region-table { font-size: .88rem; }
+        .region-table th { background: #f7f7f7; font-weight: 600; color: var(--text-heading); font-size: .8rem; text-transform: uppercase; letter-spacing: .3px; }
+        .region-table td { vertical-align: middle; }
+        .region-table tr:hover { background: #faf9f6; cursor: default; }
+        .region-iso { display: inline-block; background: #eef1f5; color: var(--text-heading); padding: .1rem .5rem; border-radius: .25rem; font-family: "SF Mono", monospace; font-size: .78rem; font-weight: 600; }
+        .region-range { font-family: "SF Mono", monospace; color: #6c757d; font-size: .85rem; }
+
+        /* Algorithm block */
+        .algo-block { background: #272822; color: #f8f8f2; border-radius: .5rem; padding: 1rem 1.25rem; font-family: "SF Mono", ui-monospace, monospace; font-size: .88rem; overflow-x: auto; }
+        .algo-block .k { color: #f92672; }
+        .algo-block .n { color: #ae81ff; }
+        .algo-block .c { color: #75715e; font-style: italic; }
+
+        .section-divider { border: none; border-top: 2px dashed var(--border-light); margin: 2rem 0; }
+
+        .site-footer { background: #2c3e50; color: rgba(255,255,255,.7); margin-top: 3rem; padding: 2rem 0; font-size: .85rem; }
+        .site-footer a { color: rgba(255,255,255,.85); text-decoration: none; }
+        .site-footer a:hover { color: #fff; text-decoration: underline; }
+        .site-footer .small-muted { font-size: .78rem; opacity: .7; }
+
+        .card-header .chev { transition: transform .2s ease; display: inline-block; }
+        .card-header[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+        .toast-mini { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1080; min-width: 260px; box-shadow: var(--shadow-lg); animation: slideDown .25s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+        .tooltip-inner { max-width: 320px; text-align: left; font-size: .82rem; line-height: 1.45; padding: .6rem .8rem; }
+
+        @media (max-width: 767.98px) {
+            .hero { border-radius: 0; margin-left: -12px; margin-right: -12px; padding: 2rem 1rem 1.5rem; }
+            .egn-breakdown { font-size: 1.25rem; gap: .2rem; }
+            .egn-digit { padding: .35rem .5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-md navbar-dark" style="background: var(--bg-green)">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <i class="bi bi-person-badge me-2"></i>
+            <span class="navbar-brand-text">ЕГН</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#validator"><i class="bi bi-check2-circle me-1"></i>Валидатор</a></li>
+                <li class="nav-item"><a class="nav-link" href="#generator"><i class="bi bi-shuffle me-1"></i>Генератор</a></li>
+                <li class="nav-item"><a class="nav-link" href="#explain"><i class="bi bi-info-circle me-1"></i>Обяснение</a></li>
+                <li class="nav-item"><a class="nav-link" href="#regions"><i class="bi bi-geo-alt me-1"></i>Области</a></li>
+                <li class="nav-item"><a class="nav-link" href="https://github.com/miglen/egn" target="_blank" rel="noopener"><i class="bi bi-github me-1"></i>GitHub</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+
+    <!-- Hero -->
+    <div class="hero">
+        <h1><i class="bi bi-person-badge me-2"></i>ЕГН — Единен граждански номер</h1>
+        <p>
+            Валидация, генериране и обяснение на български 10-цифров идентификатор.
+            <br>
+            <span class="opacity-75">Validate, generate and understand the Bulgarian Unified Civil Number.</span>
+        </p>
+        <span class="badge-count"><i class="bi bi-check-circle-fill me-1"></i>Всички изчисления са в браузъра / All in-browser</span>
+    </div>
+
+    <!-- ==================== VALIDATOR + EXPLANATION ==================== -->
+    <section id="validator" class="mb-4">
+        <div class="card validator-card">
+            <div class="card-header"><i class="bi bi-check2-circle"></i>Валидатор &amp; обяснение / Validator &amp; explanation</div>
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-sm">
+                        <label class="form-label fw-medium">Въведете ЕГН / Enter EGN</label>
+                        <input type="text" id="validatorInput" class="form-control form-control-lg"
+                               maxlength="10" pattern="\d{10}" inputmode="numeric"
+                               placeholder="напр. 7523169263" autocomplete="off">
+                    </div>
+                    <div class="col-sm-auto">
+                        <button type="button" class="btn btn-validate btn-lg px-4" id="validateBtn">
+                            <i class="bi bi-check2-circle me-1"></i>Провери
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Parsed / invalid status sits directly under the input -->
+                <div id="validatorResult"></div>
+
+                <p class="text-muted small mt-3 mb-1">
+                    Цифрите попадат в петте цветни кутии отдолу. Задръжте курсора върху всяка, за да видите обяснение.
+                    <br>
+                    <span class="text-muted"><em>Digits flow into the five coloured boxes below. Hover any segment for its meaning.</em></span>
+                </p>
+
+                <!-- Live breakdown: filled from the input as the user types; tooltips per segment -->
+                <div class="egn-breakdown" id="egnBreakdown" aria-label="EGN digit breakdown">
+                    <span class="egn-digit year empty" id="segYear" data-bs-toggle="tooltip" data-bs-html="true"
+                          title="<strong>Година</strong> / <strong>Year</strong><br>Последните 2 цифри от годината на раждане.<br><em>Last two digits of the birth year.</em>">YY</span>
+                    <span class="egn-digit month empty" id="segMonth" data-bs-toggle="tooltip" data-bs-html="true"
+                          title="<strong>Месец</strong> / <strong>Month</strong><br>01–12 за родени през 20 век.<br>+20 за родени преди 1900 (т.е. 21–32).<br>+40 за родени след 2000 (т.е. 41–52).<br><em>Add 20 for 19th-century births, 40 for 21st-century births.</em>">MM</span>
+                    <span class="egn-digit day empty" id="segDay" data-bs-toggle="tooltip" data-bs-html="true"
+                          title="<strong>Ден</strong> / <strong>Day</strong><br>Ден от месеца, 01–31.<br><em>Day of the month.</em>">DD</span>
+                    <span class="egn-digit region empty" id="segRegion" data-bs-toggle="tooltip" data-bs-html="true"
+                          title="<strong>Област</strong> / <strong>Region</strong><br>3-цифрен код 000–999 за областта по месторегистрация.<br><em>3-digit code for the administrative region of registration.</em>">RRR</span>
+                    <span class="egn-digit check empty" id="segCheck" data-bs-toggle="tooltip" data-bs-html="true"
+                          title="<strong>Пол + Контролна цифра</strong> / <strong>Sex + Check digit</strong><br>Предпоследната цифра (последна от RRR) определя пола: <strong>четна → мъж</strong>, <strong>нечетна → жена</strong>.<br>Последната е контролна сума (mod 11 mod 10).<br><em>Last digit of region encodes sex (even=male, odd=female); the 10th digit is a mod-11/mod-10 checksum.</em>">C</span>
+                </div>
+
+                <div class="egn-legend">
+                    <span><i class="dot" style="background:var(--digit-year)"></i>Година / Year</span>
+                    <span><i class="dot" style="background:var(--digit-month)"></i>Месец / Month</span>
+                    <span><i class="dot" style="background:var(--digit-day)"></i>Ден / Day</span>
+                    <span><i class="dot" style="background:var(--digit-region)"></i>Област / Region</span>
+                    <span><i class="dot" style="background:var(--digit-check)"></i>Контрола / Check</span>
+                </div>
+
+                <div class="mt-2 examples-wrap">
+                    <small class="text-muted me-1">Примери / Examples:</small>
+                    <span id="exampleLinks"></span>
+                    <button type="button" class="btn btn-link btn-sm p-0 ms-1" id="reshuffleBtn" title="Нови примери / New examples">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+
+                <details class="mt-3">
+                    <summary class="fw-medium text-dark" style="cursor:pointer">
+                        <i class="bi bi-calculator me-1"></i>Алгоритъм на контролната цифра / Checksum algorithm
+                    </summary>
+                    <p class="small text-muted mb-2 mt-2">
+                        Тежести на първите 9 цифри: <code>2, 4, 8, 5, 10, 9, 7, 3, 6</code>.
+                        Контролната е <code>(сума mod 11) mod 10</code>.
+                    </p>
+<pre class="algo-block" aria-label="checksum formula"><span class="c">// JavaScript / JS</span>
+<span class="k">const</span> w = [<span class="n">2,4,8,5,10,9,7,3,6</span>];
+<span class="k">const</span> sum = w.<span class="k">reduce</span>((s, wi, i) =&gt; s + wi * <span class="k">+</span>egn[i], <span class="n">0</span>);
+<span class="k">const</span> check = sum % <span class="n">11</span> % <span class="n">10</span>;
+<span class="k">return</span> check === <span class="k">+</span>egn[<span class="n">9</span>];</pre>
+                </details>
+
+                <div class="alert alert-warning mt-3 mb-0" style="font-size:.85rem">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>1–13 април 1916</strong> не съществуват — България преминава от Юлиански към Григориански календар, пропускайки 13 дни.
+                    <br>
+                    <span class="small"><em>1–13 April 1916 don't exist — Bulgaria adopted the Gregorian calendar by skipping those 13 days. EGNs carrying such dates are invalid.</em></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ==================== GENERATOR ==================== -->
+    <section id="generator" class="mb-4">
+        <div class="card generator-card">
+            <div class="card-header"><i class="bi bi-shuffle"></i>Генератор / Generator</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:.88rem">
+                    Генерира валидни ЕГН-та по избрани филтри. Всички параметри са по избор.
+                    <br>
+                    <span class="small">Generates valid EGNs matching the chosen filters. All parameters are optional.</span>
+                </p>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6 col-md-4">
+                        <label class="form-label fw-medium">От дата / From</label>
+                        <input type="date" id="genFrom" class="form-control" value="1980-01-01" min="1800-01-01">
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <label class="form-label fw-medium">До дата / To</label>
+                        <input type="date" id="genTo" class="form-control" value="2005-12-31">
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <label class="form-label fw-medium">Област / Region</label>
+                        <select id="genRegion" class="form-select">
+                            <option value="">Всички / All regions</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <label class="form-label fw-medium">Пол / Gender</label>
+                        <div class="gender-pills">
+                            <input type="radio" class="btn-check" name="genSex" value="" id="gen_any" checked>
+                            <label class="btn btn-any" for="gen_any"><i class="bi bi-intersect me-1"></i>Произволен</label>
+                            <input type="radio" class="btn-check" name="genSex" value="m" id="gen_male">
+                            <label class="btn btn-male" for="gen_male"><i class="bi bi-gender-male me-1"></i>Мъжки</label>
+                            <input type="radio" class="btn-check" name="genSex" value="f" id="gen_female">
+                            <label class="btn btn-female" for="gen_female"><i class="bi bi-gender-female me-1"></i>Женски</label>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <label class="form-label fw-medium">Брой / Limit</label>
+                        <input type="number" id="genLimit" class="form-control" value="10" min="1" max="5000">
+                    </div>
+                    <div class="col-sm-6 col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-generate w-100" id="generateBtn">
+                            <i class="bi bi-shuffle me-1"></i>Генерирай
+                        </button>
+                    </div>
+                </div>
+                <div id="generatorStatus" class="small text-muted mb-2"></div>
+                <div id="generatorResults" class="results-list" style="display:none"></div>
+                <div class="mt-2 d-flex gap-2" id="generatorActions" style="display:none !important">
+                    <button class="btn btn-sm btn-copy" id="copyAllBtn"><i class="bi bi-clipboard me-1"></i>Копирай всички</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="downloadBtn"><i class="bi bi-download me-1"></i>Свали .txt</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== REGIONS TABLE (collapsed) ==================== -->
+    <section id="regions" class="mb-4">
+        <div class="card">
+            <button type="button"
+                    class="card-header d-flex align-items-center w-100 border-0 text-start"
+                    style="color:var(--bg-green); background:var(--bg-card); cursor:pointer"
+                    data-bs-toggle="collapse" data-bs-target="#regionsCollapse"
+                    aria-expanded="false" aria-controls="regionsCollapse">
+                <i class="bi bi-geo-alt"></i>
+                <span>Области / Regions</span>
+                <span class="ms-auto small text-muted">
+                    <a href="https://www.iso.org/obp/ui/#iso:code:3166:BG" target="_blank" rel="noopener"
+                       class="me-2" style="color:var(--bg-green)" onclick="event.stopPropagation()">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>ISO 3166-2:BG
+                    </a>
+                    <i class="bi bi-chevron-down chev"></i>
+                </span>
+            </button>
+            <div class="collapse" id="regionsCollapse">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover region-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ISO</th>
+                                    <th>English</th>
+                                    <th>Български</th>
+                                    <th>Обхват / Range</th>
+                                </tr>
+                            </thead>
+                            <tbody id="regionsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <strong>ЕГН — Единен граждански номер</strong>
+                <p class="mb-1 small-muted mt-1">
+                    Изцяло клиентска реализация. Никое ЕГН не напуска браузъра Ви.
+                    <br><em>Runs entirely in your browser. Nothing is sent anywhere.</em>
+                </p>
+            </div>
+            <div class="col-md-3">
+                <strong class="d-block mb-2">Линкове / Links</strong>
+                <a class="d-block" href="https://github.com/miglen/egn" target="_blank" rel="noopener"><i class="bi bi-github me-1"></i>GitHub</a>
+                <a class="d-block" href="https://pypi.org/project/egn/" target="_blank" rel="noopener"><i class="bi bi-box-seam me-1"></i>PyPI</a>
+                <a class="d-block" href="http://www.grao.bg/esgraon.html" target="_blank" rel="noopener"><i class="bi bi-link-45deg me-1"></i>ГРАО</a>
+            </div>
+            <div class="col-md-3">
+                <strong class="d-block mb-2">Автор / Author</strong>
+                <a href="https://miglen.com" target="_blank" rel="noopener">Miglen Evlogiev</a>
+                <div class="small-muted mt-1">GPL-3.0</div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+<script>
+/* ============================================================
+ * EGN library — JavaScript port of egn/__init__.py
+ * Mirrors validate() / parse() / generate() behaviour 1:1.
+ * ============================================================ */
+
+const EGN_REGIONS = [
+    {start:   0, end:  43, bg: 'Благоевград',    en: 'Blagoevgrad',    iso: 'BG-01'},
+    {start:  44, end:  93, bg: 'Бургас',         en: 'Burgas',         iso: 'BG-02'},
+    {start:  94, end: 139, bg: 'Варна',          en: 'Varna',          iso: 'BG-03'},
+    {start: 140, end: 169, bg: 'Велико Търново', en: 'Veliko Turnovo', iso: 'BG-04'},
+    {start: 170, end: 183, bg: 'Видин',          en: 'Vidin',          iso: 'BG-05'},
+    {start: 184, end: 217, bg: 'Враца',          en: 'Vratza',         iso: 'BG-06'},
+    {start: 218, end: 233, bg: 'Габрово',        en: 'Gabrovo',        iso: 'BG-07'},
+    {start: 790, end: 821, bg: 'Добрич',         en: 'Dobrich',        iso: 'BG-08'},
+    {start: 234, end: 281, bg: 'Кърджали',       en: 'Kurdzhali',      iso: 'BG-09'},
+    {start: 282, end: 301, bg: 'Кюстендил',      en: 'Kyustendil',     iso: 'BG-10'},
+    {start: 302, end: 319, bg: 'Ловеч',          en: 'Lovech',         iso: 'BG-11'},
+    {start: 320, end: 341, bg: 'Монтана',        en: 'Montana',        iso: 'BG-12'},
+    {start: 342, end: 377, bg: 'Пазарджик',      en: 'Pazardzhik',     iso: 'BG-13'},
+    {start: 378, end: 395, bg: 'Перник',         en: 'Pernik',         iso: 'BG-14'},
+    {start: 396, end: 435, bg: 'Плевен',         en: 'Pleven',         iso: 'BG-15'},
+    {start: 436, end: 501, bg: 'Пловдив',        en: 'Plovdiv',        iso: 'BG-16'},
+    {start: 502, end: 527, bg: 'Разград',        en: 'Razgrad',        iso: 'BG-17'},
+    {start: 528, end: 555, bg: 'Русе',           en: 'Ruse',           iso: 'BG-18'},
+    {start: 556, end: 575, bg: 'Силистра',       en: 'Silistra',       iso: 'BG-19'},
+    {start: 576, end: 601, bg: 'Сливен',         en: 'Sliven',         iso: 'BG-20'},
+    {start: 602, end: 623, bg: 'Смолян',         en: 'Smolyan',        iso: 'BG-21'},
+    {start: 624, end: 721, bg: 'София',          en: 'Sofia',          iso: 'BG-22'},
+    {start: 722, end: 751, bg: 'София (окръг)',  en: 'Sofia (county)', iso: 'BG-23'},
+    {start: 752, end: 789, bg: 'Стара Загора',   en: 'Stara Zagora',   iso: 'BG-24'},
+    {start: 822, end: 843, bg: 'Търговище',      en: 'Targovishte',    iso: 'BG-25'},
+    {start: 844, end: 871, bg: 'Хасково',        en: 'Haskovo',        iso: 'BG-26'},
+    {start: 872, end: 903, bg: 'Шумен',          en: 'Shumen',         iso: 'BG-27'},
+    {start: 904, end: 925, bg: 'Ямбол',          en: 'Yambol',         iso: 'BG-28'},
+    {start: 926, end: 999, bg: 'Друг',           en: 'Other',          iso: 'BG-XX'},
+];
+// Keep table render deterministic in ISO order.
+const REGIONS_BY_ISO = [...EGN_REGIONS].sort((a, b) => a.iso.localeCompare(b.iso));
+
+const EGN_WEIGHTS = [2, 4, 8, 5, 10, 9, 7, 3, 6];
+
+function normalize(egn) {
+    if (typeof egn === 'number') return String(egn).padStart(10, '0');
+    return String(egn);
+}
+
+function findRegion(code) {
+    return EGN_REGIONS.find(r => code >= r.start && code <= r.end) || null;
+}
+
+function decodeDate(egn) {
+    const yy = parseInt(egn.slice(0, 2), 10);
+    const mm = parseInt(egn.slice(2, 4), 10);
+    const dd = parseInt(egn.slice(4, 6), 10);
+    if ([yy, mm, dd].some(n => Number.isNaN(n))) return null;
+    let year, month;
+    if (mm >= 40)      { month = mm - 40; year = yy + 2000; }
+    else if (mm >= 20) { month = mm - 20; year = yy + 1800; }
+    else               { month = mm;      year = yy + 1900; }
+    const d = new Date(Date.UTC(year, month - 1, dd));
+    if (d.getUTCFullYear() !== year || d.getUTCMonth() + 1 !== month || d.getUTCDate() !== dd) return null;
+    return { year, month, day: dd, datetime: d };
+}
+
+function checksumDigit(egn) {
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+        const n = parseInt(egn[i], 10);
+        if (Number.isNaN(n)) return -1;
+        sum += EGN_WEIGHTS[i] * n;
+    }
+    return (sum % 11) % 10;
+}
+
+function validate(egn) {
+    egn = normalize(egn);
+    if (egn.length !== 10 || !/^\d{10}$/.test(egn)) return false;
+    if (checksumDigit(egn) !== parseInt(egn[9], 10)) return false;
+    const date = decodeDate(egn);
+    if (!date) return false;
+    if (date.year === 1916 && date.month === 4 && date.day <= 13) return false;
+    return true;
+}
+
+function parse(egn) {
+    egn = normalize(egn);
+    if (!validate(egn)) throw new Error('Invalid EGN: ' + egn);
+    const date = decodeDate(egn);
+    const regionNum = parseInt(egn.slice(6, 9), 10);
+    const region = findRegion(regionNum);
+    const gender = parseInt(egn[8], 10) % 2 === 0 ? 'Male' : 'Female';
+    return {
+        ...date,
+        region_code: regionNum,
+        region_bg: region.bg,
+        region_en: region.en,
+        region_iso: region.iso,
+        gender,
+        egn,
+    };
+}
+
+function encodedPrefix(year, month, day) {
+    let ey, em;
+    if (year >= 2000)     { ey = year - 2000; em = month + 40; }
+    else if (year < 1900) { ey = year - 1800; em = month + 20; }
+    else                  { ey = year - 1900; em = month;      }
+    return String(ey).padStart(2, '0') + String(em).padStart(2, '0') + String(day).padStart(2, '0');
+}
+
+function* iterDates(fromISO, toISO) {
+    const start = new Date(fromISO + 'T00:00:00Z');
+    const end = new Date(toISO + 'T00:00:00Z');
+    if (start > end) return;
+    const d = new Date(start);
+    while (d <= end) {
+        const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1, dd = d.getUTCDate();
+        if (!(y === 1916 && m === 4 && dd <= 13)) {
+            yield { year: y, month: m, day: dd };
+        }
+        d.setUTCDate(d.getUTCDate() + 1);
+    }
+}
+
+function randomValidEgn() {
+    // Pick a uniformly random (year, month, day, region code); there's always
+    // exactly one check digit 0-9 that validates.
+    const today = new Date();
+    const earliest = 1900, latest = today.getUTCFullYear() - 1;
+    while (true) {
+        const year = earliest + Math.floor(Math.random() * (latest - earliest + 1));
+        const month = 1 + Math.floor(Math.random() * 12);
+        const day = 1 + Math.floor(Math.random() * 28); // always a valid day
+        if (year === 1916 && month === 4 && day <= 13) continue; // Gregorian gap
+        const rc = Math.floor(Math.random() * 1000);
+        const prefix = encodedPrefix(year, month, day) + String(rc).padStart(3, '0');
+        for (let c = 0; c < 10; c++) {
+            const candidate = prefix + c;
+            if (validate(candidate)) return candidate;
+        }
+    }
+}
+
+function generate({ dateFrom, dateTo, gender, region, limit } = {}) {
+    let codes;
+    if (region) {
+        const needle = region.toLowerCase();
+        const r = EGN_REGIONS.find(x =>
+            x.bg.toLowerCase() === needle || x.en.toLowerCase() === needle || x.iso.toLowerCase() === needle);
+        if (!r) return [];
+        codes = [];
+        for (let i = r.start; i <= r.end; i++) codes.push(i);
+    } else {
+        codes = Array.from({ length: 1000 }, (_, i) => i);
+    }
+    if (gender === 'm') codes = codes.filter(c => c % 2 === 0);
+    else if (gender === 'f') codes = codes.filter(c => c % 2 === 1);
+
+    const unlimited = !limit || limit <= 0;
+    const out = [];
+    for (const { year, month, day } of iterDates(dateFrom, dateTo)) {
+        const prefix = encodedPrefix(year, month, day);
+        for (const rc of codes) {
+            const head = prefix + String(rc).padStart(3, '0');
+            for (let c = 0; c < 10; c++) {
+                const cand = head + c;
+                if (validate(cand)) {
+                    out.push(cand);
+                    if (!unlimited && out.length >= limit) return out;
+                    break;
+                }
+            }
+        }
+    }
+    return out;
+}
+
+/* ============================================================
+ * UI wiring
+ * ============================================================ */
+
+function showToast(msg, kind = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast-mini alert alert-${kind} alert-dismissible`;
+    el.innerHTML = `<i class="bi bi-check-circle me-1"></i>${msg}
+        <button class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+}
+
+const SEG_DEFS = [
+    { id: 'segYear',   slice: [0, 2], placeholder: 'YY' },
+    { id: 'segMonth',  slice: [2, 4], placeholder: 'MM' },
+    { id: 'segDay',    slice: [4, 6], placeholder: 'DD' },
+    { id: 'segRegion', slice: [6, 9], placeholder: 'RRR' },
+    { id: 'segCheck',  slice: [9, 10], placeholder: 'C' },
+];
+
+function updateLiveBreakdown(raw) {
+    // Keep the five coloured segments in sync with the input.
+    // - Fully typed segment: show digits, full opacity.
+    // - Partially typed: show typed digits + dot placeholders, dim.
+    // - Empty: show the label (YY/MM/...), dim.
+    for (const { id, slice, placeholder } of SEG_DEFS) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const width = slice[1] - slice[0];
+        const chunk = raw.slice(slice[0], slice[1]);
+        if (chunk.length === width) {
+            el.textContent = chunk;
+            el.classList.remove('empty');
+        } else if (chunk.length > 0) {
+            el.textContent = chunk + '·'.repeat(width - chunk.length);
+            el.classList.add('empty');
+        } else {
+            el.textContent = placeholder;
+            el.classList.add('empty');
+        }
+    }
+}
+
+function renderParsed(parsed) {
+    const dtISO = parsed.datetime.toISOString().slice(0, 10);
+    const genderHtml = parsed.gender === 'Male'
+        ? '<i class="bi bi-gender-male me-1" style="color:#5b9bd5"></i>Мъжки'
+        : '<i class="bi bi-gender-female me-1" style="color:#d5668a"></i>Женски';
+    return `
+        <div class="parse-panel">
+            <div class="parsed-line">
+                <span class="parsed-ok">
+                    <i class="bi bi-check-circle-fill" style="color:var(--bg-green)"></i>
+                    <strong>Валидно / Valid</strong>
+                </span>
+                <span class="parsed-sep">·</span>
+                <span title="Дата на раждане / Date of birth"><i class="bi bi-calendar3 me-1 text-muted"></i>${dtISO}</span>
+                <span class="parsed-sep">·</span>
+                <span title="Пол / Gender">${genderHtml}</span>
+                <span class="parsed-sep">·</span>
+                <span title="Област / Region">
+                    <i class="bi bi-geo-alt me-1 text-muted"></i>
+                    <strong>${parsed.region_bg}</strong>
+                    <span class="text-muted">(${parsed.region_en})</span>
+                    <span class="region-iso ms-1">${parsed.region_iso}</span>
+                    <span class="text-muted">код <code>${String(parsed.region_code).padStart(3, '0')}</code></span>
+                </span>
+                <span class="parsed-sep">·</span>
+                <span title="Контрола / Check"><i class="bi bi-calculator me-1 text-muted"></i>контрола <code>${parsed.egn.slice(9)}</code></span>
+            </div>
+        </div>`;
+}
+
+function renderInvalid(reason) {
+    return `
+        <div class="parse-panel invalid">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-x-circle-fill fs-5" style="color:var(--bg-red)"></i>
+                <strong>Невалидно ЕГН / Invalid EGN</strong>
+            </div>
+            <div class="small text-muted">${reason}</div>
+        </div>`;
+}
+
+function syncURL(egnStr) {
+    // Keep the address bar in sync so the current EGN is shareable.
+    const url = new URL(window.location);
+    if (egnStr && egnStr.length > 0) {
+        url.searchParams.set('egn', egnStr);
+    } else {
+        url.searchParams.delete('egn');
+    }
+    history.replaceState(null, '', url);
+}
+
+function setButtonState(state) {
+    // state: 'neutral' | 'valid' | 'invalid'
+    const btn = document.getElementById('validateBtn');
+    btn.classList.remove('is-valid', 'is-invalid');
+    if (state === 'valid')   btn.classList.add('is-valid');
+    if (state === 'invalid') btn.classList.add('is-invalid');
+}
+
+function doValidate() {
+    const raw = document.getElementById('validatorInput').value.trim();
+    const out = document.getElementById('validatorResult');
+    syncURL(raw);
+    // Always keep the live breakdown boxes in sync with the current input.
+    updateLiveBreakdown(raw);
+
+    if (!raw || raw.length < 10) {
+        // Empty or still typing — neutral state.
+        out.innerHTML = '';
+        setButtonState('neutral');
+        return;
+    }
+    if (!validate(raw)) {
+        let reason;
+        if (checksumDigit(raw) !== parseInt(raw[9], 10)) {
+            reason = 'Грешна контролна цифра. / Checksum digit does not match.';
+        } else if (!decodeDate(raw)) {
+            reason = 'Несъществуваща дата. / Decoded date is not a real calendar date.';
+        } else {
+            reason = 'Датата е в пропуска 1–13 април 1916. / Date falls inside the Gregorian adoption gap.';
+        }
+        out.innerHTML = renderInvalid(reason);
+        setButtonState('invalid');
+        return;
+    }
+    out.innerHTML = renderParsed(parse(raw));
+    setButtonState('valid');
+}
+
+function populateRegions() {
+    const sel = document.getElementById('genRegion');
+    REGIONS_BY_ISO.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.en;
+        opt.textContent = `${r.iso} — ${r.bg} / ${r.en}`;
+        sel.appendChild(opt);
+    });
+    const body = document.getElementById('regionsTableBody');
+    REGIONS_BY_ISO.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="region-iso">${r.iso}</span></td>
+            <td>${r.en}</td>
+            <td>${r.bg}</td>
+            <td class="region-range">${String(r.start).padStart(3, '0')}–${String(r.end).padStart(3, '0')}</td>`;
+        body.appendChild(tr);
+    });
+}
+
+let lastResults = [];
+
+function doGenerate() {
+    const dateFrom = document.getElementById('genFrom').value || '1800-01-01';
+    const dateTo   = document.getElementById('genTo').value || new Date().toISOString().slice(0, 10);
+    const region   = document.getElementById('genRegion').value || null;
+    const gender   = document.querySelector('input[name="genSex"]:checked').value || null;
+    const limit    = parseInt(document.getElementById('genLimit').value, 10) || 10;
+
+    const status = document.getElementById('generatorStatus');
+    const listEl = document.getElementById('generatorResults');
+    const actions = document.getElementById('generatorActions');
+    status.textContent = 'Генериране… / Generating…';
+    listEl.style.display = 'none';
+    actions.style.display = 'none';
+
+    // Give the UI a tick to render the "Generating" message.
+    setTimeout(() => {
+        const t0 = performance.now();
+        const results = generate({ dateFrom, dateTo, gender, region, limit });
+        const ms = Math.round(performance.now() - t0);
+        lastResults = results;
+
+        if (results.length === 0) {
+            status.innerHTML = `<i class="bi bi-exclamation-circle me-1"></i>
+                Няма съвпадения. / No EGNs match the selected filters.`;
+            return;
+        }
+
+        listEl.innerHTML = results.map(e => {
+            const p = parse(e);
+            const date = p.datetime.toISOString().slice(0, 10);
+            return `<div class="result-row">
+                        <span class="egn-code">${e}</span>
+                        <span class="meta">${date} · ${p.region_iso} · ${p.gender === 'Male' ? '♂' : '♀'}</span>
+                    </div>`;
+        }).join('');
+        listEl.style.display = '';
+        actions.style.display = '';
+        status.innerHTML = `<i class="bi bi-check-circle me-1"></i>
+            Генерирани ${results.length} ЕГН за ${ms} ms. / Generated ${results.length} EGNs in ${ms} ms.`;
+    }, 10);
+}
+
+function copyAll() {
+    if (!lastResults.length) return;
+    navigator.clipboard.writeText(lastResults.join('\n')).then(
+        () => showToast(`Копирани ${lastResults.length} ЕГН / Copied ${lastResults.length} EGNs`),
+        () => showToast('Копирането се провали / Copy failed', 'danger')
+    );
+}
+
+function downloadAll() {
+    if (!lastResults.length) return;
+    const blob = new Blob([lastResults.join('\n') + '\n'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `egn-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    populateRegions();
+
+    // Wire up validator
+    const input = document.getElementById('validatorInput');
+    document.getElementById('validateBtn').addEventListener('click', doValidate);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); doValidate(); }
+    });
+    input.addEventListener('input', e => {
+        // Strip non-digits as the user types and validate live.
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+        doValidate();
+    });
+    function renderExamples() {
+        const container = document.getElementById('exampleLinks');
+        container.innerHTML = '';
+        const seen = new Set();
+        while (seen.size < 7) seen.add(randomValidEgn());
+        [...seen].forEach(e => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-link btn-sm example-link p-0 mx-1';
+            btn.textContent = e;
+            btn.addEventListener('click', () => {
+                input.value = e;
+                doValidate();
+                document.getElementById('validator').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            container.appendChild(btn);
+        });
+    }
+    renderExamples();
+    document.getElementById('reshuffleBtn').addEventListener('click', renderExamples);
+
+    // Wire up generator
+    document.getElementById('generateBtn').addEventListener('click', doGenerate);
+    document.getElementById('copyAllBtn').addEventListener('click', copyAll);
+    document.getElementById('downloadBtn').addEventListener('click', downloadAll);
+
+    // Bootstrap tooltips on the breakdown
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el, { container: 'body' });
+    });
+
+    // Auto-populate from ?egn=... in the URL; otherwise fall back to an example.
+    const urlEgn = (new URL(window.location)).searchParams.get('egn');
+    input.value = (urlEgn || '7523169263').replace(/\D/g, '').slice(0, 10);
+    doValidate();
+    // React to back/forward navigation that changes the ?egn= param.
+    window.addEventListener('popstate', () => {
+        const newEgn = (new URL(window.location)).searchParams.get('egn') || '';
+        input.value = newEgn;
+        doValidate();
+    });
+});
+</script>
+</body>
+</html>

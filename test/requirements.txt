@@ -1,6 +1,0 @@
-codecov
-coverage
-pep8
-pytest
-pytest-cov
-argparse
